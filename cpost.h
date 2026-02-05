@@ -2,8 +2,8 @@
  * @file cpost.h
  * @author Aki
  * @brief c post - 延迟任务调度器
- * @version 1.3.0
- * @date 2026-02-04
+ * @version 1.3.1
+ * @date 2026-02-05
  */
 #ifndef CPOST_H
 #define CPOST_H

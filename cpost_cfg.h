@@ -2,8 +2,8 @@
  * @file cpost_cfg.h
  * @author Aki
  * @brief cpost 配置文件
- * @version 1.3.0
- * @date 2026-02-04
+ * @version 1.3.1
+ * @date 2026-02-05
  */
 #ifndef CPOST_CFG_H
 #define CPOST_CFG_H

@@ -1,7 +1,7 @@
 # cpost
 
-![version](https://img.shields.io/badge/version-1.3.0-brightgreen.svg)
-![build](https://img.shields.io/badge/build-2026.02.04-brightgreen.svg)
+![version](https://img.shields.io/badge/version-1.3.1-brightgreen.svg)
+![build](https://img.shields.io/badge/build-2026.02.05-brightgreen.svg)
 ![license](https://img.shields.io/badge/license-MIT-brightgreen.svg)
 
 一个为嵌入式系统设计的非阻塞延迟任务调度器

@@ -2,8 +2,8 @@
  * @file cpost.c
  * @author Aki
  * @brief c post - 延迟任务调度器实现
- * @version 1.3.0
- * @date 2026-02-04
+ * @version 1.3.1
+ * @date 2026-02-05
  */
 #include "cpost.h"
 
@@ -36,7 +36,7 @@ int cpost_add_handler(cpost_param_t *param)
         return CPOST_ERROR_PARAM;
     }
 
-    int first_free_idx = -1;
+    int first_free_idx = -1; // 记录空位
     int result = CPOST_OK;
 
     CPOST_ENTER_CRITICAL();
@@ -44,15 +44,15 @@ int cpost_add_handler(cpost_param_t *param)
     for (size_t i = 0; i < CPOST_MAX_HANDLER_SIZE; i++)
     {
         if (g_cpost_handlers[i].handler == param->handler &&
-            (!param->attrs.param_diff || g_cpost_handlers[i].param == param->param))
+            (!param->attrs.param_diff || g_cpost_handlers[i].param == param->param)) // 若已有相同任务
         {
-            if (param->attrs.flag == CPOST_FLAG_CANCEL_CURRENT)
+            if (param->attrs.flag == CPOST_FLAG_CANCEL_CURRENT) // 忽略此次任务
             {
                 result = CPOST_ERROR_EXISTS;
                 CPOST_EXIT_CRITICAL();
                 return result;
             }
-            else if (param->attrs.flag == CPOST_FLAG_CLEAR_FRONT)
+            else if (param->attrs.flag == CPOST_FLAG_CLEAR_FRONT) // 清除之前任务
             {
                 g_cpost_handlers[i].handler = NULL;
             }
@@ -64,7 +64,7 @@ int cpost_add_handler(cpost_param_t *param)
         }
     }
 
-    if (first_free_idx != -1)
+    if (first_free_idx != -1) // 添加任务
     {
         g_cpost_handlers[first_free_idx].start_time = CPOST_GET_TICK();
         g_cpost_handlers[first_free_idx].delay = param->delay;
@@ -82,11 +82,49 @@ int cpost_add_handler(cpost_param_t *param)
 }
 
 /**
+ * @brief cpost 处理
+ */
+void cpost_process(void)
+{
+    CPOST_TICK_TYPE current_tick = CPOST_GET_TICK();
+
+    for (size_t i = 0; i < CPOST_MAX_HANDLER_SIZE; i++)
+    {
+        void (*handler)(void *) = NULL;
+        void *param = NULL;
+
+        CPOST_ENTER_CRITICAL();
+
+        if (g_cpost_handlers[i].handler != NULL)
+        {
+            if (g_cpost_handlers[i].delay == 0 ||
+                cpost_tick_diff(current_tick, g_cpost_handlers[i].start_time) >= g_cpost_handlers[i].delay) // 到达触发时间
+            {
+                handler = g_cpost_handlers[i].handler;
+                param = g_cpost_handlers[i].param;
+
+                g_cpost_handlers[i].handler = NULL;
+            }
+        }
+
+        CPOST_EXIT_CRITICAL();
+
+        if (handler != NULL) // 执行回调
+        {
+            handler(param);
+        }
+    }
+}
+
+/* ==================== 以下没啥用 ==================== */
+
+/**
  * @brief 移除handler
  *
  * @param handler handler
  * @param param 参数，传 `NULL` 表示不比较参数
  *
+ * @note 后悔药
  */
 void cpost_remove(void *handler, void *param)
 {
@@ -109,6 +147,8 @@ void cpost_remove(void *handler, void *param)
 
 /**
  * @brief 移除所有handler
+ *
+ * @note 紧急停止
  */
 void cpost_remove_all(void)
 {
@@ -125,6 +165,8 @@ void cpost_remove_all(void)
  *
  * @param handler handler
  * @param param 参数，传 `NULL` 表示不比较参数
+ *
+ * @note 看看排上队没
  *
  * @return int 1存在 0不存在
  */
@@ -150,41 +192,6 @@ int cpost_is_in_list(void *handler, void *param)
     CPOST_EXIT_CRITICAL();
 
     return found;
-}
-
-/**
- * @brief cpost 处理
- */
-void cpost_process(void)
-{
-    CPOST_TICK_TYPE current_tick = CPOST_GET_TICK();
-
-    for (size_t i = 0; i < CPOST_MAX_HANDLER_SIZE; i++)
-    {
-        void (*handler)(void *) = NULL;
-        void *param = NULL;
-
-        CPOST_ENTER_CRITICAL();
-
-        if (g_cpost_handlers[i].handler != NULL)
-        {
-            if (g_cpost_handlers[i].delay == 0 ||
-                cpost_tick_diff(current_tick, g_cpost_handlers[i].start_time) >= g_cpost_handlers[i].delay)
-            {
-                handler = g_cpost_handlers[i].handler;
-                param = g_cpost_handlers[i].param;
-
-                g_cpost_handlers[i].handler = NULL;
-            }
-        }
-
-        CPOST_EXIT_CRITICAL();
-
-        if (handler != NULL)
-        {
-            handler(param);
-        }
-    }
 }
 
 /**
